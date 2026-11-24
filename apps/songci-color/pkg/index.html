@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>宋朝配色</title>
+  <link rel="stylesheet" href="./css/app.css" />
+</head>
+<body>
+  <div id="app" class="app">
+    <div class="shell" id="shell">
+
+      <section id="v-home" class="view on" data-view="home">
+        <div class="home">
+          <h1 class="home-title">宋朝配色</h1>
+          <p class="home-lead">抽一句宋词，展开一组颜色。</p>
+          <div class="scroll-strip" id="home-strip" aria-hidden="true">
+            <i style="background:#9CC3B8"></i>
+            <i style="background:#E6C87A"></i>
+            <i style="background:#B4444A"></i>
+            <i style="background:#2C3A42"></i>
+          </div>
+          <p class="rc-note">意象取色，非文物实测</p>
+          <button class="btn-seal" id="btn-draw" type="button">抽一句</button>
+          <button class="btn-follow" id="btn-follow-home" type="button" hidden>关注作者</button>
+        </div>
+      </section>
+
+      <section id="v-card" class="view" data-view="card" hidden>
+        <article class="palette" id="palette-card">
+          <p class="card-meta" id="card-meta"></p>
+          <h1 class="card-line" id="card-line"></h1>
+          <p class="card-note" id="card-note" hidden></p>
+          <div class="pillars" id="card-swatches"></div>
+          <p class="rc-note">点色块可查看色值。意象取色，非文物实测。</p>
+        </article>
+        <div class="actions" id="card-actions">
+          <button class="btn-seal" id="btn-redraw" type="button">再抽一句</button>
+          <div class="actions-row" id="actions-row-share">
+            <button class="btn-ghost" id="btn-post" type="button">发成笔记</button>
+            <button class="btn-ghost" id="btn-comment" type="button">晒到评论区</button>
+          </div>
+          <div class="actions-row" id="actions-row-save" hidden>
+            <button class="btn-ghost" id="btn-save" type="button" hidden>保存色卡</button>
+            <button class="btn-ghost" id="btn-share" type="button" hidden>分享</button>
+          </div>
+          <button class="btn-follow" id="btn-follow-card" type="button" hidden>关注作者</button>
+        </div>
+      </section>
+
+      <section id="v-poets" class="view" data-view="poets" hidden>
+        <div class="page-head">
+          <h1 class="page-title">按词人看</h1>
+          <label class="sr-only" for="poet-q">搜索词人或词句</label>
+          <input class="search" id="poet-q" type="search" maxlength="40" placeholder="搜索词人或词句" autocomplete="off" />
+        </div>
+        <div class="poet-chips" id="poet-chips"></div>
+        <div class="ci-list" id="ci-list"></div>
+      </section>
+
+      <section id="v-colors" class="view" data-view="colors" hidden>
+        <div class="page-head">
+          <h1 class="page-title">宋色名录</h1>
+          <p class="page-lead">色名均有出处，色值只作示意，不是文物实测。</p>
+        </div>
+        <div class="color-list" id="color-list"></div>
+      </section>
+
+    </div>
+
+    <nav class="tabbar" id="tabbar" aria-label="页面切换">
+      <button class="tab on" type="button" data-tab="home" id="tab-home">首页</button>
+      <button class="tab" type="button" data-tab="card" id="tab-card">色卡</button>
+      <button class="tab" type="button" data-tab="poets" id="tab-poets">词人</button>
+      <button class="tab" type="button" data-tab="colors" id="tab-colors">宋色</button>
+    </nav>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="sheet" id="hex-sheet" hidden>
+    <div class="sheet-mask" id="hex-mask"></div>
+    <div class="sheet-panel">
+      <div class="hex-field" id="hex-swatch"></div>
+      <p class="sheet-title" id="hex-name"></p>
+      <p class="hex-value select-text" id="hex-value"></p>
+      <p class="sheet-text">小工具里不能写入剪贴板。色值已写在上面，可长按选中记下，或先保存色卡。</p>
+      <button class="btn-seal" id="hex-close" type="button">关闭</button>
+    </div>
+  </div>
+
+  <div class="sheet" id="preview-sheet" hidden>
+    <div class="sheet-mask" id="preview-mask"></div>
+    <div class="sheet-panel">
+      <p class="sheet-title">色卡已备好</p>
+      <p class="sheet-text">当前环境不能直接存到相册。可截图保存下面这张卡。</p>
+      <div class="sheet-img-wrap">
+        <img id="preview-img" alt="宋朝配色卡" />
+      </div>
+      <button class="btn-seal" id="preview-close" type="button">关闭</button>
+    </div>
+  </div>
+
+  <canvas id="card-canvas" width="1080" height="1440" hidden></canvas>
+
+  <script src="./js/platform.js"></script>
+  <script src="./js/data.js"></script>
+  <script src="./js/card.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>

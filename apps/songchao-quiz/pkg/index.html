@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>测测你是宋朝哪种女子</title>
+  <link rel="stylesheet" href="./css/app.css" />
+</head>
+<body>
+  <div id="app" class="app">
+    <div class="shell" id="shell">
+
+      <section id="v-home" class="view on" data-view="home">
+        <div class="frame">
+          <span class="corner c-tl" aria-hidden="true"></span>
+          <span class="corner c-tr" aria-hidden="true"></span>
+          <span class="corner c-bl" aria-hidden="true"></span>
+          <span class="corner c-br" aria-hidden="true"></span>
+          <div class="hero-wash" id="hero-art" aria-hidden="true"></div>
+          <p class="kicker">今天带大家看看</p>
+          <h1 class="hero-title">测测你是<br>宋朝哪种女子</h1>
+          <i class="rule" aria-hidden="true"></i>
+          <p class="lead">选七道和日常有关的题，看一看更靠近哪一种生活气性。</p>
+          <p class="rc-note">这是娱乐测验，不是历史分类。</p>
+          <p class="last-hint" id="home-last" hidden></p>
+          <button class="btn-main" id="btn-start" type="button">开始测验</button>
+        </div>
+      </section>
+
+      <section id="v-quiz" class="view" data-view="quiz" hidden>
+        <div class="quiz-top">
+          <p class="progress-label" id="q-progress">01 / 07</p>
+          <div class="dots" id="q-dots" aria-hidden="true"></div>
+        </div>
+        <div class="q-block" id="q-block">
+          <h1 class="q-title" id="q-title"></h1>
+          <i class="rule" aria-hidden="true"></i>
+          <div class="opts" id="q-opts"></div>
+        </div>
+      </section>
+
+      <section id="v-calc" class="view" data-view="calc" hidden>
+        <div class="calc-stage">
+          <i class="rule calc-rule" aria-hidden="true"></i>
+          <p class="calc-text">正在为你看气性</p>
+        </div>
+      </section>
+
+      <section id="v-result" class="view" data-view="result" hidden>
+        <article class="result-card" id="result-card">
+          <span class="corner c-tl" aria-hidden="true"></span>
+          <span class="corner c-tr" aria-hidden="true"></span>
+          <span class="corner c-bl" aria-hidden="true"></span>
+          <span class="corner c-br" aria-hidden="true"></span>
+          <div class="rc-art" id="r-art" aria-hidden="true"></div>
+          <p class="kicker">娱乐测验结果</p>
+          <h1 class="rc-name" id="r-name"></h1>
+          <i class="rule" aria-hidden="true"></i>
+          <p class="rc-desc" id="r-desc"></p>
+          <p class="rc-seal" aria-hidden="true">戏作</p>
+          <p class="rc-note">这是娱乐测验，不是历史分类。</p>
+        </article>
+        <p class="action-hint" id="action-hint"></p>
+        <div class="actions" id="result-actions">
+          <button class="btn-main" id="btn-save" type="button">保存结果卡</button>
+          <div class="action-row">
+            <button class="btn-sub" id="btn-note" type="button" hidden>发一条笔记</button>
+            <button class="btn-sub" id="btn-comment" type="button">晒到评论区</button>
+          </div>
+          <button class="btn-sub" id="btn-share" type="button" hidden>分享</button>
+          <button class="btn-follow" id="btn-follow" type="button">关注作者</button>
+          <button class="btn-ghost" id="btn-again" type="button">再测一次</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="sheet" id="preview-sheet" hidden>
+    <div class="sheet-mask" id="preview-mask"></div>
+    <div class="sheet-panel" id="preview-panel">
+      <p class="sheet-title">结果卡已备好</p>
+      <p class="sheet-text">当前环境不能直接存到相册。可截图保存下面这张卡。</p>
+      <div class="sheet-img-wrap">
+        <img id="preview-img" alt="测验结果卡" />
+      </div>
+      <button class="btn-main" id="preview-close" type="button">关闭</button>
+    </div>
+  </div>
+
+  <canvas id="card-canvas" width="1080" height="1440" hidden></canvas>
+
+  <script src="./js/platform.js"></script>
+  <script src="./js/motifs.js"></script>
+  <script src="./js/data.js"></script>
+  <script src="./js/card.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>

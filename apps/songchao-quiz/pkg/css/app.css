@@ -1,0 +1,913 @@
+/* 宋制淡雅书卷气：Chrome 61 基线层 + 局部增强。间距用子项 margin，不用 Flex gap。
+ * 运动只改 transform / opacity，时间与曲线走 CSS 变量。 */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --paper: #F7F2EA;
+  --ink: #3E4852;
+  --mute: #8C8C8A;
+  --rose: #C996A0;
+  --cela: #A0BEBE;
+  --sand: #D6BEA0;
+  --blush: #ECCECE;
+  --line: #E8DCCD;
+  --wash: #E8E4D8;
+
+  --t-instant: 80ms;
+  --t-fast: 160ms;
+  --t-base: 280ms;
+  --t-slow: 420ms;
+  --t-hold: 260ms;
+  --t-calc: 800ms;
+  --t-toast: 1800ms;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-ink: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --shift-in: 10px;
+  --shift-opt: 8px;
+  --press-scale: 0.98;
+
+  --shell-pad-top: 88px;
+  --shell-pad-bottom: 24px;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+html {
+  touch-action: manipulation;
+}
+
+body {
+  font-family: "Noto Serif CJK SC", "Songti SC", "STSong", "SimSun",
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", serif;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image: radial-gradient(rgba(140, 130, 110, 0.14) 0.7px, transparent 0.8px);
+  background-size: 5px 5px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.app {
+  height: 100%;
+  height: 100vh;
+  height: var(--app-height, 100vh);
+  overflow: hidden;
+}
+
+/* 整页不滚动：内容在安全区内垂直居中，过高时由脚本整体等比缩小 */
+.shell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  overflow: hidden;
+  padding-top: 88px;
+  padding-top: var(--shell-pad-top, 88px);
+  padding-right: 18px;
+  padding-bottom: 24px;
+  padding-bottom: var(--shell-pad-bottom, 24px);
+  padding-left: 18px;
+}
+
+.view { display: none; }
+.view.on {
+  display: block;
+  flex: 0 0 auto;
+  transform-origin: 50% 50%;
+}
+
+.frame,
+.result-card {
+  position: relative;
+  border: 3px solid var(--sand);
+  border-radius: 22px;
+  padding: 22px 22px 26px;
+  background: var(--paper);
+}
+
+.frame::after,
+.result-card::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  pointer-events: none;
+}
+
+.corner {
+  position: absolute;
+  z-index: 2;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--blush);
+  box-shadow: 0 -8px 0 -2px var(--blush), 8px 0 0 -2px var(--blush),
+    0 8px 0 -2px var(--blush), -8px 0 0 -2px var(--blush);
+}
+.corner::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #D6AA78;
+}
+.c-tl { top: 16px; left: 16px; }
+.c-tr { top: 16px; right: 16px; }
+.c-bl { bottom: 16px; left: 16px; }
+.c-br { bottom: 16px; right: 16px; }
+
+.hero-wash {
+  display: flex;
+  justify-content: center;
+  margin: 2px 0 6px;
+}
+
+.hero-svg,
+.hero-wash svg {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+}
+
+.kicker {
+  text-align: center;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  color: var(--rose);
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+.hero-title,
+.q-title,
+.rc-name {
+  text-align: center;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+
+.hero-title {
+  font-size: 28px;
+  margin: 0 8px 12px;
+}
+
+.rule {
+  display: block;
+  width: 42px;
+  height: 4px;
+  margin: 0 auto 16px;
+  background: var(--rose);
+  border-radius: 2px;
+}
+
+.lead,
+.rc-desc,
+.rc-note,
+.action-hint,
+.last-hint,
+.sheet-text,
+.calc-text {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--ink);
+  text-align: center;
+}
+
+.lead {
+  margin: 0 8px 8px;
+}
+
+.last-hint {
+  color: var(--mute);
+  font-size: 13px;
+  margin: 0 8px 16px;
+}
+
+.btn-main,
+.btn-sub,
+.btn-ghost,
+.opt {
+  display: block;
+  width: 100%;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+  border-radius: 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.btn-main,
+.btn-sub,
+.btn-ghost {
+  min-height: 48px;
+  padding: 12px 16px;
+  text-align: center;
+  letter-spacing: 0.08em;
+}
+
+.btn-main {
+  color: #fff;
+  background: var(--rose);
+  border: 0;
+}
+
+.btn-sub {
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--sand);
+}
+
+.btn-ghost {
+  color: var(--mute);
+  background: transparent;
+  border: 0;
+}
+
+.frame .btn-main {
+  width: calc(100% - 28px);
+  margin: 14px auto 0;
+}
+
+.btn-main:disabled,
+.btn-sub:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.btn-main,
+.btn-sub,
+.btn-ghost,
+.btn-follow,
+.opt {
+  transition: transform var(--t-instant) var(--ease-out);
+}
+
+.btn-main:active,
+.btn-sub:active,
+.btn-ghost:active,
+.btn-follow:active,
+.opt:active {
+  transform: scale(var(--press-scale));
+}
+
+.btn-main:disabled:active,
+.btn-sub:disabled:active,
+.btn-follow:disabled:active,
+.opt:disabled:active {
+  transform: none;
+}
+
+.quiz-top {
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+#v-quiz.on {
+  padding: 0 4px;
+}
+
+.progress-label {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: var(--mute);
+  margin-bottom: 10px;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line);
+  margin-left: 5px;
+  margin-right: 5px;
+  transition: transform var(--t-fast) var(--ease-out), opacity var(--t-fast) var(--ease-out);
+}
+
+.dot.done,
+.dot.now {
+  background: var(--cela);
+}
+
+.dot.now {
+  transform: scale(1.15);
+}
+
+.dot.is-advance {
+  animation: pop-dot var(--t-fast) var(--ease-out);
+}
+
+.q-title {
+  font-size: 22px;
+  margin: 0 6px 14px;
+  line-height: 1.45;
+}
+
+.opts {
+  padding-bottom: 8px;
+}
+
+.opt {
+  text-align: left;
+  padding: 13px 14px 13px 16px;
+  margin-bottom: 10px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--sand);
+  min-height: 52px;
+}
+
+.opt .lab {
+  display: inline-block;
+  min-width: 2em;
+  margin-right: 6px;
+  color: var(--rose);
+  letter-spacing: 0.08em;
+  font-size: 13px;
+}
+
+.opt.picked {
+  border-color: var(--cela);
+  background: #EEF4F3;
+}
+
+.opt.is-pop {
+  animation: pop-opt var(--t-fast) var(--ease-out);
+}
+
+.result-card {
+  padding-top: 18px;
+  padding-bottom: 22px;
+  margin-bottom: 10px;
+}
+
+.rc-art {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 148px;
+  height: 148px;
+  margin: 0 auto 6px;
+}
+
+.rc-art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.rc-name {
+  font-size: 26px;
+  margin: 2px 8px 8px;
+}
+
+.rc-desc {
+  margin: 0 14px 12px;
+  font-size: 14px;
+}
+
+.rc-seal {
+  position: absolute;
+  top: 74px;
+  right: 34px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--rose);
+  color: var(--rose);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  line-height: 30px;
+  text-align: center;
+  border-radius: 2px;
+  transform: rotate(12deg);
+  opacity: 0.85;
+}
+
+.rc-note,
+.action-hint {
+  color: var(--mute);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.actions .btn-main,
+.actions .btn-sub,
+.actions .btn-ghost {
+  margin-top: 8px;
+}
+
+.actions .btn-main,
+.actions .btn-sub,
+.actions .btn-ghost {
+  min-height: 44px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.action-row {
+  display: flex;
+}
+
+.action-row .btn-sub {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.action-row .btn-sub + .btn-sub {
+  margin-left: 8px;
+}
+
+.action-row.is-single .btn-sub {
+  margin-left: 0;
+}
+
+.btn-follow {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 10px 16px;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: #8A4A58;
+  background: #F8E8E8;
+  border: 1px solid var(--rose);
+  border-radius: 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.btn-follow:disabled {
+  color: var(--mute);
+  background: #EFEBE2;
+  border-color: var(--line);
+  opacity: 1;
+  cursor: default;
+}
+
+.action-hint:empty { display: none; }
+.action-hint { margin-bottom: 6px; }
+
+.calc-stage {
+  padding: 28px 12px;
+  text-align: center;
+}
+
+.calc-text {
+  font-size: 16px;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+}
+
+.calc-rule {
+  transform-origin: 50% 50%;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 40px;
+  bottom: calc(40px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+  z-index: 40;
+  max-width: 80%;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(62, 72, 82, 0.92);
+  color: #fff;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 8px);
+  transition: opacity var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
+}
+
+.toast.on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.sheet {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+}
+
+.sheet[hidden] { display: none; }
+
+.sheet-mask {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(62, 72, 82, 0.45);
+  opacity: 0;
+  transition: opacity var(--t-base) var(--ease-out);
+}
+
+.sheet-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20px 18px 24px;
+  padding-bottom: 24px;
+  padding-bottom: calc(24px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+  background: var(--paper);
+  border-radius: 18px 18px 0 0;
+  transform: translateY(100%);
+  transition: transform var(--t-slow) var(--ease-drawer);
+}
+
+.sheet.is-open .sheet-mask { opacity: 1; }
+.sheet.is-open .sheet-panel { transform: translateY(0); }
+
+.sheet-title {
+  text-align: center;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.sheet-text {
+  margin-bottom: 14px;
+  font-size: 14px;
+  color: var(--mute);
+}
+
+.sheet-img-wrap {
+  margin: 0 auto 16px;
+  max-width: 240px;
+  border: 2px solid var(--sand);
+  background: var(--paper);
+}
+
+.sheet-img-wrap img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ===== 运动编排：只动画 transform / opacity，且不写在 .view 上（fit 要用它做缩放） ===== */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes rise-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pop-opt {
+  from { transform: scale(0.97); }
+  to { transform: scale(1); }
+}
+
+@keyframes pop-dot {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.35); }
+  100% { transform: scale(1.15); }
+}
+
+@keyframes rule-draw {
+  from { opacity: 0; transform: scaleX(0); }
+  to { opacity: 1; transform: scaleX(1); }
+}
+
+@keyframes seal-in {
+  from { opacity: 0; transform: rotate(12deg) translateY(8px); }
+  to { opacity: 0.85; transform: rotate(12deg) translateY(0); }
+}
+
+@keyframes btn-ok {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.frame.is-enter .hero-wash,
+.frame.is-enter .kicker,
+.frame.is-enter .hero-title,
+.frame.is-enter .rule,
+.frame.is-enter .lead,
+.frame.is-enter .rc-note,
+.frame.is-enter .last-hint,
+.frame.is-enter .btn-main {
+  animation: rise-in var(--t-base) var(--ease-out) both;
+}
+.frame.is-enter .hero-wash { animation-delay: 0ms; }
+.frame.is-enter .kicker { animation-delay: 70ms; }
+.frame.is-enter .hero-title { animation-delay: 120ms; }
+.frame.is-enter .rule { animation-delay: 160ms; }
+.frame.is-enter .lead { animation-delay: 200ms; }
+.frame.is-enter .rc-note { animation-delay: 240ms; }
+.frame.is-enter .last-hint { animation-delay: 280ms; }
+.frame.is-enter .btn-main { animation-delay: 320ms; }
+
+.frame.is-leave {
+  animation: rise-out var(--t-base) var(--ease-out) both;
+}
+
+.q-block.is-enter .q-title,
+.q-block.is-enter .rule {
+  animation: rise-in var(--t-base) var(--ease-out) both;
+}
+.q-block.is-enter .q-title { animation-delay: 0ms; }
+.q-block.is-enter .rule { animation-delay: 40ms; }
+
+.q-block.is-enter .opt {
+  animation: rise-in var(--t-base) var(--ease-out) both;
+}
+
+.q-block.is-exit {
+  animation: rise-out var(--t-fast) var(--ease-out) both;
+}
+
+#v-quiz.is-enter .quiz-top {
+  animation: rise-in var(--t-base) var(--ease-out) both;
+}
+
+#v-calc.is-enter .calc-text {
+  animation: rise-in var(--t-base) var(--ease-ink) both;
+}
+#v-calc.is-enter .calc-rule {
+  animation: rule-draw var(--t-slow) var(--ease-ink) both;
+  animation-delay: 80ms;
+}
+
+#v-result.is-enter .result-card {
+  animation: card-in var(--t-slow) var(--ease-ink) both;
+}
+
+#v-result.is-enter .rc-art,
+#v-result.is-enter .kicker,
+#v-result.is-enter .rc-name,
+#v-result.is-enter .rule,
+#v-result.is-enter .rc-desc,
+#v-result.is-enter .rc-note {
+  animation: rise-in var(--t-base) var(--ease-ink) both;
+}
+#v-result.is-enter .rc-art { animation-delay: 0ms; }
+#v-result.is-enter .kicker { animation-delay: 70ms; }
+#v-result.is-enter .rc-name { animation-delay: 140ms; }
+#v-result.is-enter .rule { animation-delay: 180ms; }
+#v-result.is-enter .rc-desc { animation-delay: 240ms; }
+#v-result.is-enter .rc-note { animation-delay: 360ms; }
+#v-result.is-enter .rc-seal {
+  animation: seal-in var(--t-slow) var(--ease-ink) both;
+  animation-delay: 300ms;
+}
+
+#v-result.is-enter .action-hint,
+#v-result.is-enter .actions .btn-main,
+#v-result.is-enter .action-row,
+#v-result.is-enter #btn-share,
+#v-result.is-enter .btn-follow,
+#v-result.is-enter .btn-ghost {
+  animation: rise-in var(--t-base) var(--ease-out) both;
+}
+#v-result.is-enter .action-hint { animation-delay: 380ms; }
+#v-result.is-enter .actions .btn-main { animation-delay: 420ms; }
+#v-result.is-enter .action-row { animation-delay: 460ms; }
+#v-result.is-enter #btn-share { animation-delay: 490ms; }
+#v-result.is-enter .btn-follow { animation-delay: 520ms; }
+#v-result.is-enter .btn-ghost { animation-delay: 560ms; }
+
+.is-ok {
+  animation: btn-ok var(--t-fast) var(--ease-out);
+}
+
+/* 测量题面高度时关掉入场动画，避免 opacity/位移影响读数（transform 虽不占布局，保险起见一并关掉） */
+.measuring .q-block,
+.measuring .q-block .q-title,
+.measuring .q-block .rule,
+.measuring .q-block .opt,
+.measuring .quiz-top {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+html.reduce-motion .frame.is-enter .hero-wash,
+html.reduce-motion .frame.is-enter .kicker,
+html.reduce-motion .frame.is-enter .hero-title,
+html.reduce-motion .frame.is-enter .rule,
+html.reduce-motion .frame.is-enter .lead,
+html.reduce-motion .frame.is-enter .rc-note,
+html.reduce-motion .frame.is-enter .last-hint,
+html.reduce-motion .frame.is-enter .btn-main,
+html.reduce-motion .frame.is-leave,
+html.reduce-motion .q-block.is-enter .q-title,
+html.reduce-motion .q-block.is-enter .rule,
+html.reduce-motion .q-block.is-enter .opt,
+html.reduce-motion .q-block.is-exit,
+html.reduce-motion #v-quiz.is-enter .quiz-top,
+html.reduce-motion #v-calc.is-enter .calc-text,
+html.reduce-motion #v-calc.is-enter .calc-rule,
+html.reduce-motion #v-result.is-enter .result-card,
+html.reduce-motion #v-result.is-enter .rc-art,
+html.reduce-motion #v-result.is-enter .kicker,
+html.reduce-motion #v-result.is-enter .rc-name,
+html.reduce-motion #v-result.is-enter .rule,
+html.reduce-motion #v-result.is-enter .rc-desc,
+html.reduce-motion #v-result.is-enter .rc-note,
+html.reduce-motion #v-result.is-enter .rc-seal,
+html.reduce-motion #v-result.is-enter .action-hint,
+html.reduce-motion #v-result.is-enter .actions .btn-main,
+html.reduce-motion #v-result.is-enter .action-row,
+html.reduce-motion #v-result.is-enter #btn-share,
+html.reduce-motion #v-result.is-enter .btn-follow,
+html.reduce-motion #v-result.is-enter .btn-ghost,
+html.reduce-motion .opt.is-pop,
+html.reduce-motion .dot.is-advance,
+html.reduce-motion .is-ok {
+  animation-duration: 0.01ms !important;
+  animation-delay: 0ms !important;
+}
+
+html.reduce-motion .btn-main,
+html.reduce-motion .btn-sub,
+html.reduce-motion .btn-ghost,
+html.reduce-motion .btn-follow,
+html.reduce-motion .opt,
+html.reduce-motion .dot,
+html.reduce-motion .toast,
+html.reduce-motion .sheet-mask,
+html.reduce-motion .sheet-panel {
+  transition-duration: 0.01ms !important;
+}
+
+html.reduce-motion .btn-main:active,
+html.reduce-motion .btn-sub:active,
+html.reduce-motion .btn-ghost:active,
+html.reduce-motion .btn-follow:active,
+html.reduce-motion .opt:active,
+html.reduce-motion .dot.now {
+  transform: none;
+}
+
+html.reduce-motion .toast,
+html.reduce-motion .toast.on {
+  transform: translate(-50%, 0);
+}
+
+html.reduce-motion .sheet-panel,
+html.reduce-motion .sheet.is-open .sheet-panel {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .frame.is-enter .hero-wash,
+  .frame.is-enter .kicker,
+  .frame.is-enter .hero-title,
+  .frame.is-enter .rule,
+  .frame.is-enter .lead,
+  .frame.is-enter .rc-note,
+  .frame.is-enter .last-hint,
+  .frame.is-enter .btn-main,
+  .frame.is-leave,
+  .q-block.is-enter .q-title,
+  .q-block.is-enter .rule,
+  .q-block.is-enter .opt,
+  .q-block.is-exit,
+  #v-quiz.is-enter .quiz-top,
+  #v-calc.is-enter .calc-text,
+  #v-calc.is-enter .calc-rule,
+  #v-result.is-enter .result-card,
+  #v-result.is-enter .rc-art,
+  #v-result.is-enter .kicker,
+  #v-result.is-enter .rc-name,
+  #v-result.is-enter .rule,
+  #v-result.is-enter .rc-desc,
+  #v-result.is-enter .rc-note,
+  #v-result.is-enter .rc-seal,
+  #v-result.is-enter .action-hint,
+  #v-result.is-enter .actions .btn-main,
+  #v-result.is-enter .action-row,
+  #v-result.is-enter #btn-share,
+  #v-result.is-enter .btn-follow,
+  #v-result.is-enter .btn-ghost,
+  .opt.is-pop,
+  .dot.is-advance,
+  .is-ok {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+  }
+
+  .btn-main,
+  .btn-sub,
+  .btn-ghost,
+  .btn-follow,
+  .opt,
+  .dot,
+  .toast,
+  .sheet-mask,
+  .sheet-panel {
+    transition-duration: 0.01ms !important;
+  }
+
+  .btn-main:active,
+  .btn-sub:active,
+  .btn-ghost:active,
+  .btn-follow:active,
+  .opt:active,
+  .dot.now {
+    transform: none;
+  }
+
+  .toast,
+  .toast.on { transform: translate(-50%, 0); }
+
+  .sheet-panel,
+  .sheet.is-open .sheet-panel { transform: translateY(0); }
+}
+
+[hidden] { display: none !important; }
+
+/* 高屏：插画放大一点 */
+@media (min-height: 800px) {
+  .hero-wash svg { max-width: 316px; }
+  .rc-art { width: 196px; height: 196px; margin-bottom: 6px; }
+  .rc-desc { font-size: 15px; }
+  .rc-seal { top: 84px; }
+}
+
+/* 矮屏（如 375x667）：整体收紧，仍不出现滚动 */
+@media (max-height: 740px) {
+  .frame { padding: 14px 16px 16px; }
+  .hero-svg, .hero-wash svg { max-width: 252px; }
+  .hero-title { font-size: 25px; margin-bottom: 8px; }
+  .kicker { margin-top: 2px; margin-bottom: 4px; }
+  .rule { margin-bottom: 10px; }
+  .lead { font-size: 14px; line-height: 1.65; margin-bottom: 4px; }
+  .rc-art { width: 112px; height: 112px; margin-bottom: 2px; }
+  .rc-name { font-size: 23px; margin-bottom: 4px; }
+  .rc-desc { font-size: 13px; line-height: 1.62; margin-bottom: 6px; }
+  .rc-seal { top: 54px; right: 28px; width: 28px; height: 28px; line-height: 26px; font-size: 10px; }
+  .result-card { padding-top: 12px; padding-bottom: 16px; margin-bottom: 6px; }
+  .actions .btn-main, .actions .btn-sub, .actions .btn-ghost, .btn-follow { min-height: 40px; margin-top: 6px; padding-top: 8px; padding-bottom: 8px; font-size: 15px; }
+  .quiz-top { margin-bottom: 8px; }
+  .q-title { font-size: 20px; margin-bottom: 8px; }
+  .opt { padding-top: 10px; padding-bottom: 10px; min-height: 44px; margin-bottom: 8px; font-size: 15px; }
+}
+
+/* 更矮的 360×640：再收一档，给新增的「晒到评论区」留位置 */
+@media (max-height: 660px) {
+  .frame { padding: 12px 14px 14px; }
+  .hero-svg, .hero-wash svg { max-width: 220px; }
+  .hero-title { font-size: 23px; margin-bottom: 6px; }
+  .rc-art { width: 96px; height: 96px; }
+  .rc-name { font-size: 21px; }
+  .rc-desc { font-size: 12px; line-height: 1.55; margin-bottom: 4px; }
+  .rc-seal { top: 46px; right: 24px; width: 26px; height: 26px; line-height: 24px; }
+  .result-card { padding-top: 10px; padding-bottom: 12px; margin-bottom: 4px; }
+  .actions .btn-main, .actions .btn-sub, .actions .btn-ghost, .btn-follow {
+    min-height: 36px;
+    margin-top: 4px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    font-size: 14px;
+  }
+  .action-hint { margin-bottom: 4px; font-size: 11px; }
+}

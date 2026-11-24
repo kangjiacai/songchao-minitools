@@ -1,0 +1,9 @@
+URL: https://miniapp-sandbox.xiaohongshu.com/minitool/doc
+Fetched at: 2026-11-24 18:57 Asia/Shanghai (curl HTTP/2 200)
+WebFetch first attempt: 504 Gateway Timeout; curl fallback succeeded
+Response Last-Modified: 2026-11-24 02:54:11 UTC = 2026-11-24 10:54 Asia/Shanghai
+Page title: 小工具容器能力清单 · 小红书
+Page stated last update: 2026-11-23
+Headers: x-html-version=1.0.14; x-fe-app=minitoolskills; x-fe-status=online
+Local copies: minitool-doc.html (176583 bytes), minitool-doc.txt, fetch-headers.txt
+Baseline compared: docs/minitool-zip-builder/references/js-api.md (snapshot dated 2026-09-23)

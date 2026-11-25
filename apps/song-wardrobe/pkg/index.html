@@ -25,24 +25,24 @@
   <div class="app" id="app">
     <header class="top">
       <div class="title-row">
-        <h1>宋式衣橱</h1>
-        <p class="look-name" id="look-name">绛色出门</p>
+        <h1 id="look-name">宋式衣橱</h1>
       </div>
-      <p class="pieces" id="look-pieces"></p>
-      <p class="quiet">自己搭配。没有标准答案，也不是文物复原。</p>
+      <p class="pieces" id="poem-line"></p>
+      <p class="quiet" id="poem-meta"></p>
     </header>
 
-    <div class="stage" id="stage" role="img" aria-labelledby="look-name"></div>
+    <div class="stage" id="stage" role="img" aria-labelledby="look-name">
+      <p class="loading" id="loading">正在展开画卷</p>
+      <canvas id="figure" width="720" height="1280" hidden></canvas>
+    </div>
 
     <div class="dock">
-      <div class="row" id="scenes"></div>
-      <div class="row" id="cats"></div>
-      <div class="row" id="opts"></div>
-      <p class="quiet dye-label" id="dye-label">衫的颜色</p>
+      <div class="row" id="parts"></div>
+      <p class="quiet dye-label" id="dye-label">褙子的颜色</p>
       <div class="row swatches" id="colors"></div>
       <div class="actions">
         <button class="btn-quiet" id="btn-reset" type="button">重置</button>
-        <button class="btn-quiet" id="btn-shuffle" type="button">换一套</button>
+        <button class="btn-quiet" id="btn-shuffle" type="button">重新抽</button>
         <button class="btn-main" id="btn-poster" type="button">做成竖图</button>
       </div>
     </div>
@@ -68,9 +68,9 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </div>
   <noscript><p class="quiet">需要开启脚本才能搭配。</p></noscript>
-  <script src="./js/catalog.js"></script>
+  <script src="./js/poems.js"></script>
   <script src="./js/platform.js"></script>
-  <script src="./js/figure.js"></script>
+  <script src="./js/recolor.js"></script>
   <script src="./js/poster.js"></script>
   <script src="./js/app.js"></script>
 </body>

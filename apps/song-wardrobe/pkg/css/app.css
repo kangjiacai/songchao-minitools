@@ -95,12 +95,24 @@ button:active {
   position: relative;
   -webkit-box-flex: 1;
   flex: 1 1 240px;
-  min-height: 240px;
+  min-height: 220px;
+  display: -webkit-box;
+  display: flex;
+  -webkit-box-align: center;
+  align-items: center;
+  -webkit-box-pack: center;
+  justify-content: center;
 }
 
-.stage.is-pulse svg {
-  -webkit-animation: settle 220ms ease;
-  animation: settle 220ms ease;
+.stage canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.stage.is-pulse canvas {
+  -webkit-animation: settle 180ms ease;
+  animation: settle 180ms ease;
 }
 
 @-webkit-keyframes settle {
@@ -113,10 +125,9 @@ button:active {
   to { opacity: 1; }
 }
 
-.stage svg [data-dye],
-.stage svg [data-dye-stroke] {
-  -webkit-transition: fill 200ms ease, stroke 200ms ease;
-  transition: fill 200ms ease, stroke 200ms ease;
+.loading {
+  color: #8A847A;
+  font-size: 13px;
 }
 
 .dock {
@@ -278,8 +289,9 @@ button:active {
   position: absolute;
   left: 16px;
   right: 16px;
-  bottom: 16px;
-  bottom: calc(16px + var(--safe-bottom, 0px));
+  top: 12px;
+  top: var(--content-top, 12px);
+  bottom: auto;
   z-index: 6;
   background: rgba(58, 55, 50, 0.94);
   color: #F7F2EA;
@@ -306,9 +318,7 @@ button:active {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .stage.is-pulse svg,
-  .stage svg [data-dye],
-  .stage svg [data-dye-stroke],
+  .stage.is-pulse canvas,
   .toast {
     -webkit-animation: none;
     animation: none;
@@ -317,9 +327,7 @@ button:active {
   }
 }
 
-.reduce-motion .stage.is-pulse svg,
-.reduce-motion .stage svg [data-dye],
-.reduce-motion .stage svg [data-dye-stroke],
+.reduce-motion .stage.is-pulse canvas,
 .reduce-motion .toast {
   -webkit-animation: none;
   animation: none;

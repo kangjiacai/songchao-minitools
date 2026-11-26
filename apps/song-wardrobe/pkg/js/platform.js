@@ -1,10 +1,15 @@
-/* 只调用 2026-11-24 在线文档里写明对外开放的方法。不调用关注、定位、陀螺仪、内测 AI、云存储、成绩榜、赞赏。 */
+/* 只调用 2026-11-25 在线文档里写明对外开放的方法。不调用关注弹窗、定位、陀螺仪、内测 AI、云存储、成绩榜、赞赏。 */
 (function () {
   var P = {};
-  var cachedBuild = null;
+  var cachedBuild;
+  var lastWindowInfo = null;
+  var resizeBound = false;
+  var insetListeners = [];
+  var lastInsetKey = '';
   var WINDOW_MIN = 9490;
   var STORAGE_MIN = 9460;
   var COMMENT_MIN = 9490;
+  var VIBRATE_MIN = 9500;
   var SHARE_MIN = 9530;
 
   function mt() {
@@ -18,7 +23,8 @@
 
   function readBuildVersion(launchOptions) {
     var env = launchOptions && launchOptions.miniToolEnv;
-    return Number(env && env.buildVersion) || 0;
+    var n = Number(env && env.buildVersion);
+    return n > 0 && isFinite(n) ? n : null;
   }
 
   function clientVersion(buildVersion) {
@@ -28,23 +34,23 @@
   async function getBuildVersion() {
     var xhs;
     var version;
-    if (cachedBuild !== null) return cachedBuild;
+    if (cachedBuild !== undefined) return cachedBuild;
     xhs = window.xhs;
     version = readBuildVersion(xhs && xhs.launchOptions);
-    if (!version && has('getLaunchOptions')) {
+    if (version === null && has('getLaunchOptions')) {
       try {
         version = readBuildVersion(await mt().getLaunchOptions());
       } catch (err) {
-        version = 0;
+        version = null;
       }
     }
-    cachedBuild = version || 0;
+    cachedBuild = version;
     return cachedBuild;
   }
 
-  async function knownAndBelow(minimum) {
+  async function isAtLeast(minimum) {
     var build = await getBuildVersion();
-    return build > 0 && clientVersion(build) < minimum;
+    return build !== null && clientVersion(build) >= minimum;
   }
 
   function errText(err) {
@@ -81,30 +87,31 @@
     var i;
     var winH;
     var safeBottom = 0;
-    var gesture;
-    var left = 0;
+    var key;
+    var j;
     if (!info) return;
+    lastWindowInfo = info;
     safe = info.safeArea || {};
     menu = info.menuButtons || {};
     if (typeof safe.top === 'number') contentTop = safe.top;
     if (visibleRect(menu.capsule)) rects.push(menu.capsule);
-    else {
-      if (visibleRect(menu.back)) rects.push(menu.back);
-      if (visibleRect(menu.me)) rects.push(menu.me);
-      if (visibleRect(menu.share)) rects.push(menu.share);
-    }
+    if (visibleRect(menu.back)) rects.push(menu.back);
+    if (visibleRect(menu.me)) rects.push(menu.me);
+    if (visibleRect(menu.share)) rects.push(menu.share);
     for (i = 0; i < rects.length; i++) {
       if (rects[i].bottom > contentTop) contentTop = rects[i].bottom;
     }
-    root.style.setProperty('--content-top', (contentTop + 8) + 'px');
+    root.style.setProperty('--content-top', Math.ceil(contentTop + 12) + 'px');
     winH = typeof info.windowHeight === 'number' ? info.windowHeight : 0;
     if (winH && typeof safe.bottom === 'number') safeBottom = Math.max(0, winH - safe.bottom);
-    root.style.setProperty('--safe-bottom', safeBottom + 'px');
-    gesture = info.gestureArea || {};
-    if (typeof gesture.width === 'number' && gesture.width > 0 && typeof gesture.height === 'number' && gesture.height > 0) {
-      left = gesture.width;
+    root.style.setProperty('--safe-bottom', Math.ceil(safeBottom) + 'px');
+    key = Math.ceil(contentTop + 12) + '|' + Math.ceil(safeBottom);
+    if (key !== lastInsetKey) {
+      lastInsetKey = key;
+      for (j = 0; j < insetListeners.length; j++) {
+        try { insetListeners[j](); } catch (e) { /* ignore */ }
+      }
     }
-    root.style.setProperty('--gesture-left', left + 'px');
   }
 
   P.inContainer = function () {
@@ -117,11 +124,18 @@
     var bottom;
     if (window.visualViewport && window.visualViewport.height) h = window.visualViewport.height;
     if (h) document.documentElement.style.setProperty('--app-height', h + 'px');
+    if (lastWindowInfo) {
+      applyInsets(lastWindowInfo);
+      return;
+    }
     top = readRootPx('--safe-area-inset-top');
     bottom = readRootPx('--safe-area-inset-bottom');
-    if (P.inContainer() && top < 48) top = 64;
-    if (top) document.documentElement.style.setProperty('--content-top', (top + 8) + 'px');
-    if (bottom) document.documentElement.style.setProperty('--safe-bottom', bottom + 'px');
+    if (P.inContainer()) {
+      document.documentElement.style.setProperty('--content-top', Math.max(Math.ceil(top + 12), 102) + 'px');
+    } else if (top) {
+      document.documentElement.style.setProperty('--content-top', Math.ceil(top + 10) + 'px');
+    }
+    if (bottom) document.documentElement.style.setProperty('--safe-bottom', Math.ceil(bottom) + 'px');
   };
 
   P.applyWindow = async function () {
@@ -129,7 +143,13 @@
     var syncInfo = xhs && xhs.launchOptions && xhs.launchOptions.miniToolEnv && xhs.launchOptions.miniToolEnv.windowInfo;
     P.syncFrame();
     if (syncInfo) applyInsets(syncInfo);
-    if (!has('getWindowInfo') || (await knownAndBelow(WINDOW_MIN))) return;
+    if (!resizeBound && has('onWindowResize')) {
+      resizeBound = true;
+      try {
+        mt().onWindowResize(function () { P.applyWindow(); });
+      } catch (err0) { /* ignore */ }
+    }
+    if (!has('getWindowInfo') || !(await isAtLeast(WINDOW_MIN))) return;
     try {
       applyInsets(await mt().getWindowInfo());
     } catch (err) {
@@ -137,49 +157,49 @@
     }
   };
 
-  async function useStorage() {
-    return has('setStorage') && has('getStorage') && !(await knownAndBelow(STORAGE_MIN));
+  P.vibrateLight = async function () {
+    if (!has('vibrateShort') || !(await isAtLeast(VIBRATE_MIN))) return;
+    try {
+      await mt().vibrateShort({ type: 'light' });
+    } catch (err) {
+      /* 触感反馈为增强能力，失败静默忽略 */
+    }
+  };
+
+  async function canUseStorage() {
+    return has('setStorage') && has('getStorage') && (await isAtLeast(STORAGE_MIN));
   }
 
   P.setData = async function (key, data) {
     var serialized;
+    var res;
     try {
       serialized = JSON.stringify(data);
     } catch (err) {
       return false;
     }
     if (typeof serialized !== 'string') return false;
-    if (await useStorage()) {
-      try {
-        await mt().setStorage({ key: key, data: serialized });
-        return true;
-      } catch (err) {
-        return false;
-      }
-    }
+    if (!(await canUseStorage())) return false;
     try {
-      window.localStorage.setItem(key, serialized);
-      return true;
+      res = await mt().setStorage({ key: key, data: serialized });
+      return !res || !res.errMsg || res.errMsg === 'setStorage:ok';
     } catch (err2) {
       return false;
     }
   };
 
   P.getData = async function (key) {
+    var res;
     var raw = null;
-    if (await useStorage()) {
-      try {
-        var res = await mt().getStorage({ key: key });
-        raw = res ? res.data : null;
-      } catch (err) {
-        raw = null;
-      }
+    if (!(await canUseStorage())) return null;
+    try {
+      res = await mt().getStorage({ key: key });
+      raw = res ? res.data : null;
+    } catch (err) {
+      return null;
     }
-    if (raw === null || raw === undefined) {
-      try { raw = window.localStorage.getItem(key); } catch (err2) { raw = null; }
-    }
-    if (!raw) return null;
-    try { return JSON.parse(raw); } catch (err3) { return null; }
+    if (!raw || typeof raw !== 'string') return null;
+    try { return JSON.parse(raw); } catch (err2) { return null; }
   };
 
   function findSnapshot(node, depth) {
@@ -227,13 +247,23 @@
     return { ok: false, reason: 'fail' };
   };
 
+  function isSimulatorSandboxHandle(lower) {
+    return lower.indexOf('/_xhsfile_/') !== -1 &&
+      (lower.indexOf('https://miniapp-sandbox.xiaohongshu.com/') === 0 ||
+       lower.indexOf('https://miniapp-sandbox.beta.xiaohongshu.com/') === 0 ||
+       lower.indexOf('http://127.0.0.1:') === 0 ||
+       lower.indexOf('http://localhost:') === 0);
+  }
+
   function commentHandle(filePath) {
     var lower;
     if (typeof filePath !== 'string' || !filePath) return false;
     lower = filePath.toLowerCase();
     if (lower.indexOf('data:') === 0) return false;
-    if (lower.indexOf('http://') === 0 || lower.indexOf('https://') === 0) return false;
     if (lower.indexOf('blob:') === 0) return false;
+    if (lower.indexOf('http://') === 0 || lower.indexOf('https://') === 0) {
+      return isSimulatorSandboxHandle(lower);
+    }
     return true;
   }
 
@@ -280,7 +310,7 @@
     var payload;
     var raw;
     var res;
-    if (!has('interactionOpenApi') || (await knownAndBelow(COMMENT_MIN))) {
+    if (!has('interactionOpenApi') || !(await isAtLeast(COMMENT_MIN))) {
       return { ok: false, reason: 'unavailable' };
     }
     written = await P.writeTemp(opts.dataUrl);
@@ -309,7 +339,7 @@
 
   P.shareImage = async function (dataUrl) {
     var filePath;
-    if (!has('share') || (await knownAndBelow(SHARE_MIN))) {
+    if (!has('share') || !(await isAtLeast(SHARE_MIN))) {
       return { ok: false, reason: 'unavailable' };
     }
     filePath = await fileOrData(dataUrl);
@@ -319,6 +349,10 @@
     } catch (err) {
       return { ok: false, reason: 'fail', msg: errText(err), code: errCode(err) };
     }
+  };
+
+  P.onInsetsChange = function (fn) {
+    if (typeof fn === 'function') insetListeners.push(fn);
   };
 
   window.WardrobePlatform = P;

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""从已认可的 trial-02 母图生成分区蒙版，并修掉深色换色时的米色虚边。
+"""从已认可的 trial-02 母图生成分区蒙版（褙子、内衫、中衣、裙、腰带、鞋履），并修掉深色换色时的米色虚边。
 
 母图像素来自 JPEG 解码后的固定栅格。运行时用无损 PNG，保证和蒙版对齐。
 不调用生成模型。只做确定性的连通域和邻域规则。
@@ -65,11 +65,7 @@ def grow_once(region, blocked):
 
 
 def claim_rims(regions, true_ink, protected, y):
-    """把衣区与真墨线之间的暖灰虚边收回该衣区。
-
-    真墨线（很暗）不动。接近背景的亮像素不动，避免把奶油底涂进衣服。
-    两个衣区都够得到的像素不分配，以免串色。
-    """
+    """把衣区与真墨线之间的暖灰虚边收回该衣区。"""
     dist = []
     for region in regions:
         dist.append(ndi.distance_transform_edt(~region))
@@ -78,8 +74,6 @@ def claim_rims(regions, true_ink, protected, y):
     best = dist.min(axis=0)
     second = np.partition(dist, 1, axis=0)[1]
     ambiguous = (second - best) < 0.5
-    # 虚边比衣身暗一截，又没有暗到成为墨线。
-    # 196 仍会留下一圈偏亮的抗锯齿。抬到 220，但脸和手先膨胀，避免染到皮肤。
     rim = (best <= 2.0) & (best > 0) & (y >= TRUE_INK_Y) & (y <= 220) & ~protected & ~true_ink & ~ambiguous
     out = []
     for i, region in enumerate(regions):
@@ -88,18 +82,29 @@ def claim_rims(regions, true_ink, protected, y):
     return out
 
 
-def recolor(im, mask, target, yref):
-    out = im.astype(np.float64).copy()
-    if not np.any(mask):
-        return out
-    y = luma(out)
-    target = np.array(target, dtype=np.float64)
-    yt = float((target * LUMA_W).sum())
-    ynew = np.clip(yt + (y - yref), 8.0, 250.0)
-    chroma = target / max(yt, 1e-6)
-    painted = np.clip(ynew[..., None] * chroma, 0, 255)
-    out[mask] = painted[mask]
-    return out
+def split_zhongyi(im: np.ndarray, inner: np.ndarray, y: np.ndarray):
+    """从内衫领口区分割最内层白色交领中衣，互不重叠。"""
+    s4 = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]], dtype=np.uint8)
+    roi = np.zeros_like(inner)
+    roi[240:336, 315:405] = True
+    bright = inner & roi & (y >= 185)
+    comp, n = ndi.label(bright, structure=s4)
+    zhongyi_core = np.zeros_like(inner)
+    for k in range(1, n + 1):
+        m = comp == k
+        area = int(m.sum())
+        avg_b = float(im[:, :, 2][m].mean()) if area else 0.0
+        xs = np.where(m)[1]
+        if 700 <= area <= 1300 and avg_b > 214 and xs.min() >= 325 and xs.max() <= 392:
+            zhongyi_core = m
+            break
+    inner_core = inner & ~zhongyi_core & (~roi | (y >= 185))
+    rim_cands = inner & ~zhongyi_core & ~inner_core
+    dz = ndi.distance_transform_edt(~zhongyi_core)
+    di = ndi.distance_transform_edt(~inner_core)
+    zhongyi = zhongyi_core | (rim_cands & (dz < di) & (dz <= 3.0))
+    inner_out = inner & ~zhongyi
+    return inner_out, zhongyi
 
 
 def build(im):
@@ -108,35 +113,45 @@ def build(im):
     inner = union(labels, INNER_LABELS)
     skirt = union(labels, SKIRT_LABELS)
     waist = union(labels, WAIST_LABELS)
+    shoes = union(labels, SHOE_LABELS)
     face = union(labels, FACE_LABELS)
     hands = union(labels, HAND_LABELS)
-    shoes = union(labels, SHOE_LABELS)
     bg = labels == 1
     true_ink = y < TRUE_INK_Y
-    protected = ndi.binary_dilation(face | hands, structure=np.ones((3, 3))) | shoes | bg
-    # 先向非保护区的线缝长 1px，只吃还没有任何衣区的中间调。
-    blocked = protected | true_ink | beizi | inner | skirt | waist
-    beizi = grow_once(beizi, blocked | inner | skirt | waist)
-    inner = grow_once(inner, blocked | beizi | skirt | waist)
-    skirt = grow_once(skirt, blocked | beizi | inner | waist)
-    waist = grow_once(waist, blocked | beizi | inner | skirt)
-    beizi, inner, skirt, waist = claim_rims(
-        [beizi, inner, skirt, waist], true_ink, protected, y
+    protected = ndi.binary_dilation(face | hands, structure=np.ones((3, 3))) | bg
+    blocked = protected | true_ink | beizi | inner | skirt | waist | shoes
+    beizi = grow_once(beizi, blocked)
+    inner = grow_once(inner, blocked)
+    skirt = grow_once(skirt, blocked)
+    waist = grow_once(waist, blocked)
+    shoes = grow_once(shoes, blocked)
+    beizi, inner, skirt, waist, shoes = claim_rims(
+        [beizi, inner, skirt, waist, shoes], true_ink, protected, y
     )
-    # 衣区之间若重叠，留给先绘制的外衣以外的更靠内区域：重叠处去掉外衣。
+    shoes = shoes & ~skirt & ~beizi & ~true_ink
     waist = waist & ~true_ink
-    skirt = skirt & ~waist & ~true_ink
+    skirt = skirt & ~waist & ~shoes & ~true_ink
     inner = inner & ~skirt & ~waist & ~true_ink
-    beizi = beizi & ~inner & ~skirt & ~waist & ~true_ink
+    beizi = beizi & ~inner & ~skirt & ~waist & ~shoes & ~true_ink
+    inner, zhongyi = split_zhongyi(im, inner, y)
     yrefs = {}
     for name, core in (
         ("beizi", union(labels, BEIZI_LABELS)),
-        ("inner", union(labels, INNER_LABELS)),
+        ("inner", inner),
+        ("zhongyi", zhongyi),
         ("skirt", union(labels, SKIRT_LABELS)),
         ("waist", union(labels, WAIST_LABELS)),
+        ("shoes", union(labels, SHOE_LABELS)),
     ):
         yrefs[name] = float(np.median(y[core]))
-    masks = {"beizi": beizi, "inner": inner, "skirt": skirt, "waist": waist}
+    masks = {
+        "beizi": beizi,
+        "inner": inner,
+        "zhongyi": zhongyi,
+        "skirt": skirt,
+        "waist": waist,
+        "shoes": shoes,
+    }
     return masks, yrefs, true_ink, y
 
 
@@ -151,33 +166,8 @@ def main():
     for name, mask in masks.items():
         save_mask(OUT_MASK / (name + ".png"), mask)
         save_mask(PKG_IMG / ("mask-" + name + ".png"), mask)
-        print(name, int(mask.sum()), "yref", round(yrefs[name], 1))
+        print(name, int(mask.sum()), "yref", round(yrefs[name], 4))
     save_mask(OUT_MASK / "ink.png", true_ink)
-
-    tests = {
-        "navy": {"beizi": (36, 58, 92), "inner": (236, 226, 206), "skirt": (186, 168, 176), "waist": (120, 96, 78)},
-        "purple": {"beizi": (72, 42, 86), "inner": (244, 228, 210), "skirt": (92, 48, 64), "waist": (160, 120, 90)},
-        "light": {"beizi": (214, 228, 226), "inner": (246, 236, 220), "skirt": (232, 214, 196), "waist": (214, 186, 150)},
-        "vivid": {"beizi": (176, 48, 58), "inner": (250, 236, 210), "skirt": (48, 96, 168), "waist": (212, 168, 48)},
-    }
-    if "--demo" in sys.argv:
-        demo = ART / "demo"
-        demo.mkdir(exist_ok=True)
-        for key, cols in tests.items():
-            out = im.astype(np.float64)
-            for part, rgb in cols.items():
-                out = recolor(out, masks[part], rgb, yrefs[part])
-            rec = np.clip(np.round(out), 0, 255).astype(np.uint8)
-            Image.fromarray(rec).save(demo / (key + ".png"))
-            # 前襟与外轮廓放大
-            for cname, box in (
-                ("front", (300, 300, 430, 560)),
-                ("ledge", (160, 400, 250, 560)),
-                ("cuff", (180, 630, 280, 740)),
-            ):
-                crop = Image.fromarray(rec).crop(box)
-                crop.resize((crop.width * 4, crop.height * 4), Image.NEAREST).save(demo / ("%s_%s.png" % (key, cname)))
-        print("demos written")
     return masks, yrefs
 
 

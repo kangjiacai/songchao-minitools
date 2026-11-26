@@ -9,8 +9,8 @@
     html, body { height: 100%; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
-      background: #F7F2EA;
-      color: #3A3732;
+      background: #F5E5CE;
+      color: #2E2924;
       -webkit-font-smoothing: antialiased;
       -webkit-tap-highlight-color: transparent;
       -webkit-user-select: none;
@@ -18,60 +18,157 @@
       -webkit-touch-callout: none;
     }
     html { touch-action: manipulation; }
+    [hidden] { display: none !important; }
   </style>
   <link rel="stylesheet" href="./css/app.css" />
 </head>
 <body>
   <div class="app" id="app">
     <header class="top">
-      <div class="title-row">
-        <h1 id="look-name">宋式衣橱</h1>
+      <div class="top-inner">
+        <div class="top-intro" id="top-intro" aria-hidden="true">
+          <span class="intro-brand">宋式衣橱</span>
+          <button class="top-pill intro-skip" id="btn-intro-skip" type="button">直接设色 ›</button>
+        </div>
+        <div class="title-row top-edit" id="top-edit">
+          <h1 id="look-name">宋式衣橱</h1>
+          <nav class="top-tools" aria-label="心境、词笺与衣箱">
+            <button class="top-pill" id="btn-mood" type="button"><span class="btn-ico" aria-hidden="true">✦</span>心境</button>
+            <button class="top-pill" id="btn-drawer" type="button"><span class="btn-ico" aria-hidden="true">≡</span>词笺</button>
+            <button class="top-pill" id="btn-chest" type="button"><span class="btn-ico" aria-hidden="true">◇</span><span id="top-chest-label">衣箱</span></button>
+          </nav>
+        </div>
+        <div class="top-export" id="top-export" aria-hidden="true">
+          <button class="btn-quiet result-back" id="btn-back" type="button">‹ 返回</button>
+          <span class="export-title" id="export-look-title">宋式衣橱</span>
+        </div>
       </div>
-      <p class="pieces" id="poem-line"></p>
-      <p class="quiet" id="poem-meta"></p>
     </header>
 
-    <div class="stage" id="stage" role="img" aria-labelledby="look-name">
-      <p class="loading" id="loading">正在展开画卷</p>
-      <canvas id="figure" width="720" height="1280" hidden></canvas>
-    </div>
+    <main class="stage" id="stage" aria-labelledby="look-name">
+      <p class="loading" id="loading" role="status">正在展开画卷…</p>
+      <div class="canvas-wrap" id="canvas-wrap" hidden>
+        <canvas id="figure" width="720" height="1280" aria-label="宋式人物线描淡彩，可点击衣物部位选区"></canvas>
+        <div class="feather-mask" aria-hidden="true"></div>
+        <div class="tap-ripple" id="tap-ripple" aria-hidden="true"></div>
+      </div>
 
-    <div class="dock">
-      <div class="row" id="parts"></div>
-      <p class="quiet dye-label" id="dye-label">褙子的颜色</p>
-      <div class="row swatches" id="colors"></div>
-      <div class="actions">
-        <button class="btn-quiet" id="btn-reset" type="button">重置</button>
-        <button class="btn-quiet" id="btn-shuffle" type="button">重新抽</button>
-        <button class="btn-main" id="btn-poster" type="button">做成竖图</button>
+      <div class="inscription-wrap" id="inscription-wrap">
+        <aside class="inscription" id="poem-head" aria-label="宋词题跋">
+          <p class="poem-line" id="poem-line">知否，知否？&#10;应是绿肥红瘦。</p>
+          <p class="poem-meta" id="poem-meta">李清照·如梦令</p>
+        </aside>
+        <button class="poem-shuffle" id="btn-shuffle" type="button"><span class="btn-ico" aria-hidden="true">↻</span>换词</button>
       </div>
-    </div>
 
-    <section class="result" id="result" aria-hidden="true">
-      <div class="result-bar">
-        <button class="btn-quiet" id="btn-back" type="button">返回修改</button>
+      <div class="stage-badge" id="stage-badge" aria-live="polite"></div>
+      <p class="stage-hint" id="stage-hint">轻点衣物设色 · 或右上「心境」一键起衣</p>
+    </main>
+
+    <section class="dock" aria-label="设色操作区">
+      <div class="dock-inner">
+        <div class="dock-intro" id="dock-intro" aria-hidden="true">
+          <p class="intro-prompt">今日心境如何？为宋朝姑娘起一袭新衣</p>
+          <div class="mood-grid" id="mood-grid" role="group" aria-label="选择心境起衣"></div>
+          <div class="intro-foot">
+            <button class="btn-main intro-random" id="btn-intro-random" type="button">今日随机起衣</button>
+          </div>
+        </div>
+        <div class="dock-edit" id="dock-edit">
+          <div class="parts-wrap">
+            <div class="parts-row" id="parts" role="tablist" aria-label="衣物部位"></div>
+            <span class="part-indicator" id="part-indicator" aria-hidden="true"></span>
+          </div>
+          <div class="dye-bar">
+            <p class="quiet dye-label" id="dye-label">褙子 · 原色</p>
+            <button class="btn-clear-part" id="btn-clear-part" type="button" hidden>还原</button>
+          </div>
+          <div class="swatches" id="colors" role="group" aria-label="宋词四色与基础素墨"></div>
+          <div class="actions">
+            <div class="actions-left">
+              <button class="btn-quiet" id="btn-apply-set" type="button">套色</button>
+              <button class="btn-quiet" id="btn-undo" type="button" disabled>撤回</button>
+              <button class="btn-quiet" id="btn-original" type="button" aria-pressed="false" disabled>原画</button>
+              <button class="btn-quiet" id="btn-reset" type="button" disabled>重置</button>
+            </div>
+            <div class="actions-right">
+              <button class="btn-quiet home-chest-btn" id="btn-home-chest-save" type="button">存衣箱</button>
+              <button class="btn-main" id="btn-poster" type="button">存为画册</button>
+            </div>
+          </div>
+        </div>
+        <div class="dock-export" id="dock-export" aria-hidden="true">
+          <p class="env-note" id="env-note" hidden></p>
+          <div class="export-primary-row">
+            <button class="btn-quiet export-chest-btn" id="btn-chest-save" type="button">+ 存衣箱</button>
+            <button class="btn-main result-save" id="btn-save" type="button">保存到相册</button>
+          </div>
+          <div class="link-row">
+            <button class="btn-quiet" id="btn-note" type="button">发成笔记</button>
+            <button class="btn-quiet" id="btn-comment" type="button">晒到评论区</button>
+            <button class="btn-quiet" id="btn-share" type="button">分享画册</button>
+            <button class="btn-quiet" id="btn-open-chest" type="button">双联对比</button>
+          </div>
+        </div>
       </div>
-      <div class="result-body">
-        <img id="result-img" alt="" />
+    </section>
+
+    <section class="drawer" id="poem-drawer" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="tab-poems">
+      <div class="drawer-backdrop" id="drawer-backdrop"></div>
+      <div class="drawer-panel" id="drawer-panel">
+        <div class="drawer-handle" aria-hidden="true"></div>
+        <div class="drawer-head">
+          <div class="drawer-tabs" role="tablist" aria-label="词笺与衣箱切换">
+            <button class="drawer-tab is-on" id="tab-poems" type="button" role="tab" aria-selected="true">宋词色笺 <span class="drawer-tab-num" id="drawer-count">60</span></button>
+            <button class="drawer-tab" id="tab-chest" type="button" role="tab" aria-selected="false">我的衣箱 <span class="drawer-tab-num" id="chest-count">0/6</span></button>
+          </div>
+          <button class="btn-quiet drawer-close" id="btn-drawer-close" type="button">收起</button>
+        </div>
+        <div class="drawer-pane" id="drawer-poems-pane">
+          <div class="drawer-poets" id="drawer-poets" role="tablist" aria-label="按词人筛选"></div>
+          <div class="drawer-list" id="drawer-list"></div>
+          <p class="drawer-foot">意象取色，非文物实测</p>
+        </div>
+        <div class="drawer-pane" id="drawer-chest-pane" hidden>
+          <div class="chest-head-bar">
+            <span class="quiet">最多收藏 6 套 · 选 2 套生成双联画卷</span>
+            <button class="btn-clear-part" id="btn-chest-add-inline" type="button">+ 收存当前</button>
+          </div>
+          <div class="chest-list" id="chest-list"></div>
+          <div class="chest-foot">
+            <span class="quiet" id="chest-pick-tip">勾选 2 套开启对比</span>
+            <button class="btn-main chest-diptych-btn" id="btn-diptych" type="button" disabled>生成双联画卷</button>
+          </div>
+        </div>
       </div>
-      <p class="env-note" id="env-note"></p>
-      <div class="result-actions">
-        <button class="btn-main" id="btn-save" type="button">保存到相册</button>
+    </section>
+
+    <section class="diptych" id="diptych-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="diptych-title">
+      <div class="diptych-bar">
+        <button class="btn-quiet result-back" id="btn-diptych-back" type="button">‹ 返回衣箱</button>
+        <span class="export-title" id="diptych-title">双联试衣画卷</span>
+      </div>
+      <div class="diptych-body">
+        <img id="diptych-img" alt="宋式衣橱双联试衣画卷" />
+      </div>
+      <p class="env-note" id="diptych-env-note" hidden></p>
+      <div class="diptych-actions">
+        <button class="btn-main result-save" id="btn-diptych-save" type="button">保存到相册</button>
         <div class="link-row">
-          <button class="btn-quiet" id="btn-note" type="button">发成笔记</button>
-          <button class="btn-quiet" id="btn-comment" type="button">晒到评论区</button>
-          <button class="btn-quiet" id="btn-share" type="button">分享这张图</button>
+          <button class="btn-quiet" id="btn-diptych-note" type="button">发成笔记</button>
+          <button class="btn-quiet" id="btn-diptych-comment" type="button">晒到评论区</button>
+          <button class="btn-quiet" id="btn-diptych-share" type="button">分享画册</button>
         </div>
       </div>
     </section>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </div>
-  <noscript><p class="quiet">需要开启脚本才能搭配。</p></noscript>
-  <script src="./js/poems.js"></script>
-  <script src="./js/platform.js"></script>
-  <script src="./js/recolor.js"></script>
-  <script src="./js/poster.js"></script>
-  <script src="./js/app.js"></script>
+  <noscript><p class="quiet noscript-tip">需要开启脚本才能为衣物设色。</p></noscript>
+  <script defer src="./js/poems.js"></script>
+  <script defer src="./js/platform.js"></script>
+  <script defer src="./js/recolor.js"></script>
+  <script defer src="./js/poster.js"></script>
+  <script defer src="./js/app.js"></script>
 </body>
 </html>
